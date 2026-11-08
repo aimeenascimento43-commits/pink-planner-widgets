@@ -1,1 +1,328 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Priorities</title>
+
+<style>
+:root {
+  --rose: #F6E4E7;
+  --cream: #FFF9F5;
+  --dusty: #A86F7B;
+  --brown: #63464D;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 12px;
+  background: var(--cream);
+  color: var(--brown);
+  font-family: Georgia, serif;
+}
+
+.widget {
+  max-width: 560px;
+  margin: auto;
+  padding: 24px;
+  background: #FFFFFF;
+  border: 1px solid var(--rose);
+  border-radius: 20px;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: normal;
+  font-style: italic;
+  margin: 0 0 8px;
+}
+
+.subtitle {
+  color: var(--dusty);
+  font-size: 13px;
+  margin-bottom: 22px;
+}
+
+.add-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+#newTask {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--rose);
+  border-radius: 10px;
+  background: var(--cream);
+  color: var(--brown);
+  font: 13px Arial, sans-serif;
+  outline-color: var(--dusty);
+}
+
+#addBtn {
+  border: none;
+  border-radius: 10px;
+  background: var(--dusty);
+  color: white;
+  padding: 12px 15px;
+  font: 12px Arial, sans-serif;
+  cursor: pointer;
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--rose);
+}
+
+.task input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--dusty);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.task-text {
+  flex: 1;
+  font: 13px Arial, sans-serif;
+  overflow-wrap: anywhere;
+}
+
+.task.done .task-text {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.delete-btn {
+  border: none;
+  background: var(--rose);
+  color: var(--brown);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 17px;
+}
+
+.empty {
+  text-align: center;
+  color: var(--dusty);
+  font-size: 13px;
+  padding: 20px 0;
+}
+
+.progress {
+  margin-top: 20px;
+  color: var(--dusty);
+  font: 12px Arial, sans-serif;
+  text-align: center;
+}
+
+.progress-bar {
+  height: 6px;
+  background: var(--rose);
+  border-radius: 20px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--dusty);
+  border-radius: 20px;
+  transition: width 0.2s ease;
+}
+
+.footer {
+  margin-top: 22px;
+  color: var(--dusty);
+  font-size: 12px;
+  font-style: italic;
+  text-align: center;
+}
+</style>
+</head>
+
+<body>
+<div class="widget">
+
+  <h1>Daily priorities ♡</h1>
+
+  <div class="subtitle">
+    Make space for what matters today.
+  </div>
+
+  <form class="add-row" id="taskForm">
+    <input
+      type="text"
+      id="newTask"
+      placeholder="Write a new task..."
+      maxlength="200"
+      required
+    >
+    <button type="submit" id="addBtn">
+      + Add task
+    </button>
+  </form>
+
+  <div id="taskList"></div>
+
+  <div class="progress">
+    <span id="progressText">0 of 0 completed</span>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    One lovely step at a time. ♡
+  </div>
+
+</div>
+
+<script>
+const STORAGE_KEY = "rose-cream-todo-v1";
+
+let tasks = [];
+
+try {
+  const saved = JSON.parse(
+    localStorage.getItem(STORAGE_KEY)
+  );
+
+  if (Array.isArray(saved)) {
+    tasks = saved.filter(item =>
+      item &&
+      typeof item.text === "string"
+    );
+  }
+} catch (error) {
+  tasks = [];
+}
+
+const form = document.getElementById("taskForm");
+const input = document.getElementById("newTask");
+const list = document.getElementById("taskList");
+const progressText = document.getElementById("progressText");
+const progressFill = document.getElementById("progressFill");
+
+function saveTasks() {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(tasks)
+    );
+  } catch (error) {
+    console.warn("Unable to save tasks");
+  }
+}
+
+function renderTasks() {
+  list.innerHTML = "";
+
+  if (tasks.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "Your lovely plans start here ♡";
+    list.appendChild(empty);
+  }
+
+  tasks.forEach(task => {
+    const row = document.createElement("div");
+    row.className = "task";
+
+    if (task.done) {
+      row.classList.add("done");
+    }
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = !!task.done;
+    checkbox.setAttribute(
+      "aria-label",
+      "Complete " + task.text
+    );
+
+    checkbox.addEventListener("change", () => {
+      task.done = checkbox.checked;
+      saveTasks();
+      renderTasks();
+    });
+
+    const text = document.createElement("span");
+    text.className = "task-text";
+    text.textContent = task.text;
+
+    const remove = document.createElement("button");
+    remove.className = "delete-btn";
+    remove.type = "button";
+    remove.textContent = "×";
+    remove.setAttribute(
+      "aria-label",
+      "Delete " + task.text
+    );
+
+    remove.addEventListener("click", () => {
+      tasks = tasks.filter(item =>
+        item.id !== task.id
+      );
+      saveTasks();
+      renderTasks();
+    });
+
+    row.append(checkbox, text, remove);
+    list.appendChild(row);
+  });
+
+  const completed = tasks.filter(
+    task => task.done
+  ).length;
+
+  const total = tasks.length;
+
+  progressText.textContent =
+    completed + " of " + total + " completed";
+
+  const percent = total === 0
+    ? 0
+    : (completed / total) * 100;
+
+  progressFill.style.width = percent + "%";
+}
+
+form.addEventListener("submit", event => {
+  event.preventDefault();
+
+  const value = input.value.trim();
+
+  if (!value) return;
+
+  tasks.push({
+    id: crypto.randomUUID
+      ? crypto.randomUUID()
+      : String(Date.now()) + Math.random(),
+    text: value,
+    done: false
+  });
+
+  input.value = "";
+  saveTasks();
+  renderTasks();
+  input.focus();
+});
+
+renderTasks();
+</script>
+</body>
+</html>
+
